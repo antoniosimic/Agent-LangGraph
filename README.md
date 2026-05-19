@@ -76,6 +76,6 @@ npm run dev
 |-------|------|
 | AI/Backend Architect | Antonio Šimić |
 | Team Lead / Frontend | Jakov Malić |
-| Computer Vision | Član 3 |
-| Audio & API | Član 4 |
+| Computer Vision | Marin Grković |
+| Audio & API | Barbara Bobeta  |
 | QA & Dokumentacija | Član 5 |
