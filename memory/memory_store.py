@@ -1,12 +1,9 @@
-"""
-Memory Store — Antonio Šimić (AI/Backend Architect)
-
-Implements persistent memory using ChromaDB (vector search) for semantic recall
-and a simple JSON file as fallback when ChromaDB is unavailable.
-
-Each user gets their own interaction history which is retrieved as context
-for the SemanticInterpretationAgent.
-"""
+# Memory Store — Antonio Šimić (AI/Backend Architect)
+# Pamti prethodne interakcije korisnika kako bi SemanticInterpretationAgent
+# mogao personalizirati opise za povratne korisnike.
+#
+# Primarni backend: ChromaDB (vektorska baza)
+# Fallback: JSON fajl po korisniku (ako ChromaDB nije instaliran/dostupan)
 
 import json
 import os
@@ -27,6 +24,7 @@ class MemoryStore:
         self._chroma = self._init_chroma()
 
     def _init_chroma(self):
+        """Pokušava inicijalizirati ChromaDB; ako nije dostupan, vraća None."""
         try:
             import chromadb
             client = chromadb.PersistentClient(path=str(PERSIST_DIR))
@@ -34,7 +32,10 @@ class MemoryStore:
         except Exception:
             return None
 
+    # --- Javno sučelje ---
+
     def save_interaction(self, user_id: str, state: BlaindState) -> None:
+        """Sprema rezultate jedne analize u memoriju."""
         record = {
             "timestamp": datetime.utcnow().isoformat(),
             "objects": state.detected_objects,
@@ -42,13 +43,27 @@ class MemoryStore:
             "description": state.semantic_description,
             "detected_text": state.detected_text,
         }
+        if self._chroma:
+            self._save_to_chroma(user_id, record)
+        else:
+            self._save_to_file(user_id, record)
 
+    def save_raw(self, user_id: str, objects: list[str], description: str) -> None:
+        """Sprema sirove podatke bez BlaindState-a (koristi ga MCP tool)."""
+        record = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "objects": objects,
+            "context_tags": [],
+            "description": description,
+            "detected_text": None,
+        }
         if self._chroma:
             self._save_to_chroma(user_id, record)
         else:
             self._save_to_file(user_id, record)
 
     def get_user_context(self, user_id: str, n_results: int = 3) -> Optional[str]:
+        """Dohvaća sažetak zadnjih n_results interakcija za korisnika."""
         if self._chroma:
             return self._query_chroma(user_id, n_results)
         return self._load_from_file(user_id, n_results)
@@ -75,33 +90,26 @@ class MemoryStore:
                 where={"user_id": user_id},
             )
             docs = results.get("documents", [[]])[0]
-            if not docs:
-                return None
-            return " | ".join(docs)
+            return " | ".join(docs) if docs else None
         except Exception:
             return None
 
-    # --- File fallback backend ---
+    # --- JSON fallback backend ---
 
     def _save_to_file(self, user_id: str, record: dict) -> None:
         path = FALLBACK_DIR / f"{user_id}.json"
-        history = []
-        if path.exists():
-            with open(path) as f:
-                history = json.load(f)
+        history = json.loads(path.read_text()) if path.exists() else []
         history.append(record)
-        history = history[-20:]  # keep last 20 interactions
-        with open(path, "w") as f:
-            json.dump(history, f, ensure_ascii=False, indent=2)
+        path.write_text(json.dumps(history[-20:], ensure_ascii=False, indent=2))
 
     def _load_from_file(self, user_id: str, n_results: int) -> Optional[str]:
         path = FALLBACK_DIR / f"{user_id}.json"
         if not path.exists():
             return None
-        with open(path) as f:
-            history = json.load(f)
-        recent = history[-n_results:]
-        if not recent:
-            return None
-        snippets = [f"Objects: {', '.join(r['objects'])}" for r in recent if r.get("objects")]
+        history = json.loads(path.read_text())
+        snippets = [
+            f"Objekti: {', '.join(r['objects'])}"
+            for r in history[-n_results:]
+            if r.get("objects")
+        ]
         return " | ".join(snippets) if snippets else None

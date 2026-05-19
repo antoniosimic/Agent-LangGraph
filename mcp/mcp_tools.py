@@ -1,9 +1,6 @@
-"""
-MCP Tools — Antonio Šimić (AI/Backend Architect)
-
-Exposes Blaind's memory and visual history as MCP-compatible tools
-so agents can query them natively as part of their tool-calling loop.
-"""
+# MCP Tools — Antonio Šimić (AI/Backend Architect)
+# Izlaže memoriju sustava kao MCP-kompatibilne alate koje agenti mogu
+# pozivati nativno kao dio svog tool-calling loopa.
 
 from langchain_core.tools import tool
 from memory.memory_store import MemoryStore
@@ -13,33 +10,29 @@ _store = MemoryStore()
 
 @tool
 def get_user_memory(user_id: str) -> str:
-    """
-    Retrieve recent visual interaction history for a specific user.
-    Returns a text summary of what the user has previously seen.
-    """
+    """Dohvaća sažetak prethodnih vizualnih interakcija korisnika."""
     context = _store.get_user_context(user_id)
     if context:
-        return f"Previous interactions for user '{user_id}': {context}"
-    return f"No previous interactions found for user '{user_id}'."
+        return f"Prethodne interakcije korisnika '{user_id}': {context}"
+    return f"Nema prethodnih interakcija za korisnika '{user_id}'."
 
 
 @tool
 def save_user_observation(user_id: str, objects: str, description: str) -> str:
     """
-    Save a new visual observation to the user's memory.
-    Args:
-        user_id: unique user identifier
-        objects: comma-separated list of detected objects
-        description: the semantic description that was generated
+    Sprema novu vizualnu observaciju u memoriju korisnika.
+
+    Argumenti:
+        user_id: identifikator korisnika
+        objects: objekti odvojeni zarezom (npr. "stol, stolica, ekran")
+        description: semantički opis scene
     """
-    from graph.state import BlaindState
-    mock_state = BlaindState(
+    _store.save_raw(
         user_id=user_id,
-        detected_objects=objects.split(","),
-        semantic_description=description,
+        objects=[o.strip() for o in objects.split(",")],
+        description=description,
     )
-    _store.save_interaction(user_id, mock_state)
-    return f"Saved observation for user '{user_id}'."
+    return f"Observacija uspješno spremljena za korisnika '{user_id}'."
 
 
 MCP_TOOLS = [get_user_memory, save_user_observation]
