@@ -1,12 +1,9 @@
-"""
-Vision routes — Member 4 (Audio Integration & API Engineer)
-
-POST /api/vision/analyze  — accepts image, runs full agent pipeline,
-                            returns description + audio URL
-"""
+# Vision rute — Član 4 (Audio Integration & API)
+# POST /api/vision/analyze — prima sliku, pokreće pipeline, vraća opis i audio URL
 
 import base64
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -47,10 +44,8 @@ async def analyze_image(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    audio_url = None
-    if result.audio_path:
-        filename = result.audio_path.split("/")[-1].split("\\")[-1]
-        audio_url = f"/audio/{filename}"
+    # Iz apsolutnog puta audio fajla izvlačimo samo naziv fajla
+    audio_url = f"/audio/{Path(result.audio_path).name}" if result.audio_path else None
 
     return AnalysisResponse(
         session_id=session_id,

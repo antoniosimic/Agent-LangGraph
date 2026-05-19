@@ -1,8 +1,5 @@
-"""
-FastAPI Backend — Member 4 (Audio Integration & API Engineer)
-
-Entry point for the Blaind backend API.
-"""
+# FastAPI Backend — Član 4 (Audio Integration & API)
+# Ulazna točka backend servera. Pokreće se s: uvicorn api.main:app --reload
 
 import os
 from contextlib import asynccontextmanager
@@ -12,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import vision, audio
+from api.routes import vision
 from api.websocket import router as ws_router
 
 load_dotenv()
@@ -20,17 +17,19 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Osiguravamo da direktorij za audio fajlove postoji pri pokretanju
     os.makedirs("./temp/audio", exist_ok=True)
     yield
 
 
 app = FastAPI(
     title="Blaind API",
-    description="Universal Visual Interpreter for blind people",
+    description="Univerzalni vizualni interpretator za slijepe osobe",
     version="0.1.0",
     lifespan=lifespan,
 )
 
+# CORS — dozvoljava sve origine (za razvoj; u produkciji sužiti na domenu frontenda)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,9 +39,9 @@ app.add_middleware(
 )
 
 app.include_router(vision.router, prefix="/api/vision", tags=["vision"])
-app.include_router(audio.router, prefix="/api/audio", tags=["audio"])
 app.include_router(ws_router, tags=["websocket"])
 
+# Audio fajlovi se serviraju statički s /audio/{filename}
 app.mount("/audio", StaticFiles(directory="./temp/audio"), name="audio")
 
 
