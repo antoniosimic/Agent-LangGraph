@@ -1,16 +1,8 @@
-"""
-Visual Analysis Agent — Member 3 (Computer Vision Engineer)
-
-Responsibilities:
-- Detect objects, shapes, colors, faces
-- OCR: read text from the image
-- Classify foreground vs background elements
-"""
+# Visual Analysis Agent — Član 3 (Computer Vision)
+# Zadužen za analizu slike: prepoznavanje objekata, boja, lica i čitanje teksta (OCR).
 
 import base64
-import os
-from io import BytesIO
-from typing import Optional
+import json
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
@@ -18,6 +10,7 @@ from langchain_core.messages import HumanMessage
 from graph.state import BlaindState
 
 
+# Prompt koji šaljemo modelu — tražimo strukturirani JSON bez ikakve interpretacije
 VISION_PROMPT = """
 Analyze this image in detail. Return a structured JSON with the following fields:
 - detected_objects: list of all objects you can identify
@@ -37,21 +30,24 @@ class VisualAnalysisAgent:
         self.llm = ChatOpenAI(model=model, max_tokens=1024)
 
     def _encode_image(self, image_path: str) -> str:
+        """Čita lokalnu sliku i pretvara je u base64 string."""
         with open(image_path, "rb") as f:
             return base64.b64encode(f.read()).decode("utf-8")
 
     def run(self, state: BlaindState) -> BlaindState:
         try:
+            # Uzimamo base64 sliku — ili direktno ili kodiramo lokalni fajl
             if state.image_base64:
                 image_data = state.image_base64
             elif state.image_path:
                 image_data = self._encode_image(state.image_path)
             else:
                 return state.model_copy(update={
-                    "error": "No image provided",
+                    "error": "Nije proslijeđena slika za analizu.",
                     "current_step": "visual_analysis_failed",
                 })
 
+            # Šaljemo sliku i prompt vision modelu
             message = HumanMessage(content=[
                 {"type": "text", "text": VISION_PROMPT},
                 {
@@ -61,7 +57,6 @@ class VisualAnalysisAgent:
             ])
 
             response = self.llm.invoke([message])
-            import json
             raw = json.loads(response.content)
 
             return state.model_copy(update={
@@ -76,6 +71,6 @@ class VisualAnalysisAgent:
 
         except Exception as e:
             return state.model_copy(update={
-                "error": f"VisualAnalysisAgent error: {str(e)}",
+                "error": f"VisualAnalysisAgent greška: {str(e)}",
                 "current_step": "visual_analysis_failed",
             })

@@ -1,3 +1,6 @@
+# LangGraph workflow — Antonio Šimić (AI/Backend Architect)
+# Definira redoslijed agenata i uvjetno grananje u slučaju greške.
+
 from langgraph.graph import StateGraph, END
 
 from graph.state import BlaindState
@@ -13,7 +16,10 @@ def build_graph() -> StateGraph:
     speech_agent = SpeechInteractionAgent()
     memory_store = MemoryStore()
 
+    # Svaki čvor prima BlaindState i vraća ažurirani BlaindState
+
     def load_memory(state: BlaindState) -> BlaindState:
+        """Učitava kontekst prethodnih interakcija ovog korisnika."""
         context = memory_store.get_user_context(state.user_id)
         return state.model_copy(update={
             "memory_context": context,
@@ -30,13 +36,13 @@ def build_graph() -> StateGraph:
         return speech_agent.run(state)
 
     def save_memory(state: BlaindState) -> BlaindState:
+        """Sprema rezultate analize u memoriju za buduće interakcije."""
         memory_store.save_interaction(state.user_id, state)
         return state.model_copy(update={"current_step": "done"})
 
     def should_continue(state: BlaindState) -> str:
-        if state.error:
-            return "error"
-        return "continue"
+        """Ako je agent vratio grešku, prekidamo workflow."""
+        return "error" if state.error else "continue"
 
     graph = StateGraph(BlaindState)
 
@@ -65,5 +71,5 @@ def build_graph() -> StateGraph:
     return graph.compile()
 
 
-# Singleton — import this in API
+# Singleton instanca — uvoziti u API-ju
 blaind_graph = build_graph()
