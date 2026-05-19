@@ -1,32 +1,35 @@
+# Testovi za SemanticInterpretationAgent — koriste mock LLM kako bi testovi bili brzi
+# i neovisni o API ključevima.
+
 from unittest.mock import MagicMock, patch
 
 from graph.state import BlaindState
 from agents.semantic_interpretation_agent import SemanticInterpretationAgent
 
 
-def _make_state(**kwargs) -> BlaindState:
+def _napravi_state(**kwargs) -> BlaindState:
+    """Pomoćna funkcija — vraća BlaindState s razumnim zadanim vrijednostima."""
     defaults = {
         "user_id": "test",
-        "detected_objects": ["car", "road", "traffic sign"],
-        "foreground_objects": ["traffic sign"],
-        "background_objects": ["car", "road"],
-        "dominant_colors": ["red", "white", "grey"],
+        "detected_objects": ["auto", "cesta", "prometni znak"],
+        "foreground_objects": ["prometni znak"],
+        "background_objects": ["auto", "cesta"],
+        "dominant_colors": ["crvena", "bijela", "siva"],
     }
     defaults.update(kwargs)
     return BlaindState(**defaults)
 
 
 @patch("agents.semantic_interpretation_agent.ChatAnthropic")
-def test_semantic_agent_success(mock_llm_class):
-    mock_response = MagicMock()
-    mock_response.content = "A red STOP sign is in the foreground, with a grey road behind it."
+def test_uspjesan_opis(mock_llm_class):
+    """Agent treba vratiti opis i current_step == done."""
     mock_llm = MagicMock()
-    mock_llm.invoke.return_value = mock_response
+    mock_llm.invoke.return_value = MagicMock(
+        content="Ispred vas je crveni znak STOP, a iza njega je siva cesta."
+    )
     mock_llm_class.return_value = mock_llm
 
-    agent = SemanticInterpretationAgent()
-    state = _make_state()
-    result = agent.run(state)
+    result = SemanticInterpretationAgent().run(_napravi_state())
 
     assert result.semantic_description is not None
     assert result.current_step == "semantic_interpretation_done"
@@ -34,28 +37,27 @@ def test_semantic_agent_success(mock_llm_class):
 
 
 @patch("agents.semantic_interpretation_agent.ChatAnthropic")
-def test_semantic_agent_tags_traffic(mock_llm_class):
-    mock_response = MagicMock()
-    mock_response.content = "A stop sign on the road."
+def test_tagovi_promet(mock_llm_class):
+    """Objekti vezani uz promet trebaju generirati tag 'promet'."""
     mock_llm = MagicMock()
-    mock_llm.invoke.return_value = mock_response
+    mock_llm.invoke.return_value = MagicMock(content="Prometni znak stop na cesti.")
     mock_llm_class.return_value = mock_llm
 
-    agent = SemanticInterpretationAgent()
-    state = _make_state(detected_objects=["car", "road", "sign"])
-    result = agent.run(state)
+    result = SemanticInterpretationAgent().run(
+        _napravi_state(detected_objects=["auto", "cesta", "znak"])
+    )
 
-    assert "traffic" in result.context_tags
+    assert "promet" in result.context_tags
 
 
 @patch("agents.semantic_interpretation_agent.ChatAnthropic")
-def test_semantic_agent_error_handling(mock_llm_class):
+def test_greska_api_poziva(mock_llm_class):
+    """Ako LLM baci iznimku, agent treba postaviti error u state."""
     mock_llm = MagicMock()
     mock_llm.invoke.side_effect = Exception("API error")
     mock_llm_class.return_value = mock_llm
 
-    agent = SemanticInterpretationAgent()
-    result = agent.run(_make_state())
+    result = SemanticInterpretationAgent().run(_napravi_state())
 
     assert result.error is not None
     assert "SemanticInterpretationAgent" in result.error
