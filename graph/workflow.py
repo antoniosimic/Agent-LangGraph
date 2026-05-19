@@ -17,7 +17,6 @@ def build_graph() -> StateGraph:
         context = memory_store.get_user_context(state.user_id)
         return state.model_copy(update={
             "memory_context": context,
-            "is_returning_user": context is not None,
             "current_step": "memory_loaded",
         })
 

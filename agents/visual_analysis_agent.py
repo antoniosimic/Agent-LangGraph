@@ -65,7 +65,6 @@ class VisualAnalysisAgent:
             raw = json.loads(response.content)
 
             return state.model_copy(update={
-                "raw_visual_data": raw,
                 "detected_objects": raw.get("detected_objects", []),
                 "foreground_objects": raw.get("foreground_objects", []),
                 "background_objects": raw.get("background_objects", []),

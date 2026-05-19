@@ -62,7 +62,6 @@ class SemanticInterpretationAgent:
 
             return state.model_copy(update={
                 "semantic_description": description,
-                "tts_text": description,
                 "context_tags": context_tags,
                 "confidence_score": self._estimate_confidence(state),
                 "current_step": "semantic_interpretation_done",

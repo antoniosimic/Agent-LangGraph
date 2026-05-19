@@ -25,7 +25,7 @@ class SpeechInteractionAgent:
 
     def run(self, state: BlaindState) -> BlaindState:
         try:
-            text = state.tts_text or state.semantic_description
+            text = state.semantic_description
             if not text:
                 return state.model_copy(update={
                     "error": "No text available for TTS",

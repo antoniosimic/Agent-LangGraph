@@ -3,36 +3,33 @@ from pydantic import BaseModel, Field
 
 
 class BlaindState(BaseModel):
-    """Shared state passed between all agents in the LangGraph workflow."""
+    """Zajednički state koji se prosljeđuje između svih agenata u LangGraph workflowu."""
 
-    # Input
-    image_base64: Optional[str] = None
-    image_path: Optional[str] = None
+    # --- Ulaz ---
+    image_base64: Optional[str] = None   # slika kao base64 string (od frontenda)
+    image_path: Optional[str] = None     # alternativno: lokalni put do slike
     user_id: str = "anonymous"
     session_id: str = ""
 
-    # Visual Analysis Agent output
-    raw_visual_data: Optional[dict] = None
-    detected_objects: list[str] = Field(default_factory=list)
-    detected_text: Optional[str] = None
-    detected_faces: int = 0
-    dominant_colors: list[str] = Field(default_factory=list)
-    foreground_objects: list[str] = Field(default_factory=list)
-    background_objects: list[str] = Field(default_factory=list)
+    # --- Izlaz VisualAnalysisAgent-a ---
+    detected_objects: list[str] = Field(default_factory=list)    # svi prepoznati objekti
+    foreground_objects: list[str] = Field(default_factory=list)  # objekti u prvom planu
+    background_objects: list[str] = Field(default_factory=list)  # objekti u pozadini
+    detected_text: Optional[str] = None                          # OCR tekst iz slike
+    detected_faces: int = 0                                       # broj lica
+    dominant_colors: list[str] = Field(default_factory=list)     # dominantne boje
 
-    # Semantic Interpretation Agent output
-    semantic_description: Optional[str] = None
-    context_tags: list[str] = Field(default_factory=list)
+    # --- Izlaz SemanticInterpretationAgent-a ---
+    semantic_description: Optional[str] = None  # opis scene za slijepu osobu
+    context_tags: list[str] = Field(default_factory=list)  # kategorije scene (npr. "traffic")
     confidence_score: float = 0.0
 
-    # Speech & Interaction Agent output
-    audio_path: Optional[str] = None
-    tts_text: Optional[str] = None
+    # --- Izlaz SpeechInteractionAgent-a ---
+    audio_path: Optional[str] = None  # put do generiranog MP3 fajla
 
-    # Memory
-    memory_context: Optional[str] = None
-    is_returning_user: bool = False
+    # --- Memorija ---
+    memory_context: Optional[str] = None  # kontekst iz prethodnih interakcija ovog korisnika
 
-    # Error handling
+    # --- Praćenje grešaka ---
     error: Optional[str] = None
     current_step: str = "init"
