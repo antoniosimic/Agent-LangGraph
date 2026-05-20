@@ -158,29 +158,29 @@ export default function Home() {
       />
 
       {/* Top bar — logo left, controls right */}
-      <div className="pointer-events-none fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-3 pb-3 pt-4">
+      <div className="pointer-events-none fixed left-0 right-0 top-0 z-30 flex items-center justify-between px-3 pb-3 pt-4 sm:px-6 sm:pt-6">
         {/* Left: logo + settings */}
-        <div className="flex items-center gap-2">
-          <div className="rounded-full bg-black/70 px-3 py-2 text-base font-black tracking-tight text-white shadow-lg backdrop-blur" aria-hidden="true">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="rounded-full bg-black/70 px-3 py-2 text-base font-black tracking-tight text-white shadow-lg backdrop-blur sm:px-5 sm:py-3 sm:text-2xl" aria-hidden="true">
             Bl<span className="text-blue-300">AI</span>nd
           </div>
           <button
             type="button"
             onClick={() => setA11yOpen((v) => !v)}
             aria-label="Accessibility settings"
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow backdrop-blur transition-colors hover:bg-white/10"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:w-14"
           >
             <SettingsIcon />
           </button>
         </div>
 
         {/* Right: info + sound */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => speak(INSTRUCTIONS)}
             aria-label="Read instructions aloud"
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow backdrop-blur transition-colors hover:bg-white/10"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:w-14"
           >
             <InfoIcon />
           </button>
@@ -189,7 +189,7 @@ export default function Home() {
             onClick={toggleSound}
             aria-pressed={soundEnabled}
             aria-label={soundEnabled ? "Mute sound" : "Unmute sound"}
-            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow backdrop-blur transition-colors hover:bg-white/10"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 shadow backdrop-blur transition-colors hover:bg-white/10 sm:h-14 sm:w-14"
           >
             {soundEnabled ? <SoundOnIcon /> : <SoundOffIcon />}
           </button>
@@ -267,7 +267,7 @@ export default function Home() {
 
 function SettingsIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-5 w-5 sm:h-7 sm:w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
@@ -276,7 +276,7 @@ function SettingsIcon() {
 
 function InfoIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-5 w-5 sm:h-7 sm:w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="16" x2="12" y2="12" />
       <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -286,7 +286,7 @@ function InfoIcon() {
 
 function SoundOnIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-5 w-5 sm:h-7 sm:w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11 5 6 9H2v6h4l5 4V5z" />
       <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
     </svg>
@@ -295,7 +295,7 @@ function SoundOnIcon() {
 
 function SoundOffIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-5 w-5 sm:h-7 sm:w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M11 5 6 9H2v6h4l5 4V5z" />
       <line x1="23" y1="9" x2="17" y2="15" />
       <line x1="17" y1="9" x2="23" y2="15" />

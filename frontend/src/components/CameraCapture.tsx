@@ -200,7 +200,7 @@ export default function CameraCapture({
 
         {/* Center pill */}
         <div className="flex flex-1 items-center justify-center">
-          <div className="flex items-center gap-2 rounded-full bg-white/90 px-5 py-3 text-sm font-bold text-black shadow-2xl backdrop-blur">
+          <div className="flex items-center gap-2 rounded-full bg-white/90 px-5 py-3 text-sm font-bold text-black shadow-2xl backdrop-blur sm:px-8 sm:py-5 sm:text-xl">
             {disabled ? <><SpinnerSmall />Analyzing…</> : <><ShutterIcon />Tap to analyze</>}
           </div>
         </div>
@@ -255,7 +255,7 @@ function CameraIcon() {
 
 function ShutterIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+    <svg className="h-5 w-5 sm:h-7 sm:w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="4" fill="currentColor" />
     </svg>
@@ -288,7 +288,7 @@ function FlashIcon({ on }: { on: boolean }) {
 
 function SpinnerSmall() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" className="animate-spin" aria-hidden="true">
+    <svg className="h-5 w-5 animate-spin sm:h-7 sm:w-7" viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" fill="none" />
       <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" />
     </svg>
