@@ -70,6 +70,63 @@ npm install
 npm run dev
 ```
 
+## Pokretanje na mobitelu
+
+Mobilni browser zahtijeva HTTPS za pristup kameri. Postoje dva načina:
+
+### Opcija A — Android Chrome (ista WiFi mreža)
+
+Mobitel i računalo moraju biti spojeni na **isti WiFi**.
+
+1. Pronađi lokalnu IP adresu računala:
+   ```bash
+   ipconfig getifaddr en0
+   # npr. 192.168.1.119
+   ```
+
+2. Pokreni backend i frontend da slušaju na svim sučeljima:
+   ```bash
+   # Terminal 1
+   uvicorn api.main:app --reload --host 0.0.0.0
+
+   # Terminal 2
+   cd frontend
+   npm run dev -- --hostname 0.0.0.0
+   ```
+
+3. Na Android mobitelu otvori Chrome i idi na:
+   ```
+   chrome://flags/#unsafely-treat-insecure-origin-as-secure
+   ```
+
+4. U tekstualno polje upiši lokalnu adresu računala (s portom):
+   ```
+   http://192.168.1.119:3000
+   ```
+
+5. Postavi dropdown na **Enabled**, klikni **Relaunch**.
+
+6. Otvori `http://192.168.1.119:3000` u Chromeu — kamera će raditi.
+
+### Opcija B — HTTPS tunel (Android i iPhone)
+
+Koristi [localtunnel](https://github.com/localtunnel/localtunnel) — ne zahtijeva account:
+
+```bash
+# Terminal 3 (frontend mora biti pokrenut)
+npx localtunnel --port 3000
+```
+
+Otvori dobiveni `https://....loca.lt` URL na mobitelu. Ako zatraži lozinku, upiši lokalnu IP adresu računala.
+
+> **Napomena:** Backend ostaje na lokalnoj mreži — Next.js proxy preusmjerava API pozive server-side pa nije potreban drugi tunel.
+
+### Problemi s kamerom
+
+- **Kamera se zamrzne ili prikazuje crni ekran** → Refreshaj stranicu (povuci prema dolje ili pritisni F5). Kamera se ponekad ne oslobodi ispravno između snimaka.
+- **Nema zvuka** → Provjeri da stranica nije mutirana u browser postavkama i da je Sound gumb u appu uključen.
+- **Ne može se prebaciti kamera** → Refreshaj stranicu i pokušaj ponovo.
+
 ## Tim — Blaind
 
 | Uloga | Član |
