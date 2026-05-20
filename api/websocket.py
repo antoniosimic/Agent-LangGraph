@@ -13,6 +13,12 @@ from graph.workflow import blaind_graph
 router = APIRouter()
 
 
+def _as_blaind_state(result: BlaindState | dict) -> BlaindState:
+    if isinstance(result, BlaindState):
+        return result
+    return BlaindState.model_validate(result)
+
+
 @router.websocket("/ws/{user_id}")
 async def websocket_analyze(websocket: WebSocket, user_id: str):
     await websocket.accept()
@@ -29,8 +35,10 @@ async def websocket_analyze(websocket: WebSocket, user_id: str):
 
             await websocket.send_json({"status": "processing", "step": "visual_analysis"})
 
-            result: BlaindState = await blaind_graph.ainvoke(
-                BlaindState(image_base64=image_base64, user_id=user_id)
+            result = _as_blaind_state(
+                await blaind_graph.ainvoke(
+                    BlaindState(image_base64=image_base64, user_id=user_id)
+                )
             )
 
             audio_url = f"/audio/{Path(result.audio_path).name}" if result.audio_path else None

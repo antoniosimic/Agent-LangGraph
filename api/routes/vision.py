@@ -14,6 +14,12 @@ from graph.workflow import blaind_graph
 router = APIRouter()
 
 
+def _as_blaind_state(result: BlaindState | dict) -> BlaindState:
+    if isinstance(result, BlaindState):
+        return result
+    return BlaindState.model_validate(result)
+
+
 class AnalysisResponse(BaseModel):
     session_id: str
     description: str
@@ -40,7 +46,7 @@ async def analyze_image(
     )
 
     try:
-        result: BlaindState = await blaind_graph.ainvoke(initial_state)
+        result = _as_blaind_state(await blaind_graph.ainvoke(initial_state))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
