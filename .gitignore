@@ -46,3 +46,6 @@ temp/
 uploads/
 *.wav
 *.mp3
+
+# Local project notes
+LOCAL_PROJECT_NOTES.md

@@ -9,10 +9,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+load_dotenv()
+
 from api.routes import vision
 from api.websocket import router as ws_router
-
-load_dotenv()
 
 
 @asynccontextmanager
