@@ -18,8 +18,17 @@ def _workflow_logging_enabled() -> bool:
     return os.getenv("WORKFLOW_LOGGING", "true").lower() in {"1", "true", "yes", "on"}
 
 
+def _backend_tts_enabled() -> bool:
+    return os.getenv("ENABLE_BACKEND_TTS", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _state_for_log(state: BlaindState) -> dict:
-    return {
+    payload = {
         "current_step": state.current_step,
         "user_id": state.user_id,
         "session_id": state.session_id,
@@ -39,9 +48,11 @@ def _state_for_log(state: BlaindState) -> dict:
         "semantic_description": state.semantic_description,
         "context_tags": state.context_tags,
         "confidence_score": state.confidence_score,
-        "audio_path_present": bool(state.audio_path),
         "error": state.error,
     }
+    if _backend_tts_enabled():
+        payload["audio_path_present"] = bool(state.audio_path)
+    return payload
 
 
 def _log_agent_boundary(label: str, state: BlaindState, duration_ms: int | None = None) -> None:
@@ -71,12 +82,7 @@ def _run_logged(
 def build_graph() -> StateGraph:
     visual_agent = VisualAnalysisAgent()
     semantic_agent = SemanticInterpretationAgent()
-    backend_tts_enabled = os.getenv("ENABLE_BACKEND_TTS", "false").lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
+    backend_tts_enabled = _backend_tts_enabled()
     speech_agent = SpeechInteractionAgent() if backend_tts_enabled else None
     memory_store = MemoryStore()
 

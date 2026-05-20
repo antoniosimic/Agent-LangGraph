@@ -15,6 +15,7 @@ interface AnalysisResult {
 const INSTRUCTIONS =
   "Blaind is a mobile camera assistant for blind and low-vision users. Tap anywhere on the camera view to take a picture. After the description appears, tap outside the Repeat description button to return to the camera. Descriptions are AI-generated and may not be fully accurate. Use your own judgment, especially in safety-critical situations.";
 const SPEECH_RATE = 1.25;
+const ANALYZING_SPEECH_DELAY_MS = 1500;
 
 export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -72,7 +73,7 @@ export default function Home() {
     analyzingSpeechTimerRef.current = window.setTimeout(() => {
       speak("Analyzing picture");
       analyzingSpeechTimerRef.current = null;
-    }, 650);
+    }, ANALYZING_SPEECH_DELAY_MS);
 
     const formData = new FormData();
     formData.append("image", imageBlob, "capture.jpg");
