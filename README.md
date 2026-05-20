@@ -51,7 +51,7 @@ git clone https://github.com/antoniosimic/Agent-LangGraph.git blaind
 cd blaind
 
 # 2. Postaviti virtualno okruženje
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # 3. Instalirati ovisnosti
@@ -59,16 +59,21 @@ pip install -r requirements.txt
 
 # 4. Postaviti environment varijable
 cp .env.example .env
-# Urediti .env s API ključevima
+# Otvoriti .env i upisati OPENAI_API_KEY i ANTHROPIC_API_KEY
 
-# 5. Pokrenuti backend
+# 5. Kreirati potrebne direktorije
+mkdir -p temp/audio
+
+# 6. Pokrenuti backend
 uvicorn api.main:app --reload
 
-# 6. Pokrenuti frontend (u novom terminalu)
+# 7. Pokrenuti frontend (u novom terminalu)
 cd frontend
 npm install
 npm run dev
 ```
+
+Otvori **http://localhost:3000** u browseru.
 
 ## Pokretanje na mobitelu
 
