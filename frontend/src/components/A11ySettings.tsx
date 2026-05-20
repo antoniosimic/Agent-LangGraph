@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+// open state is now controlled by the parent via props
 
 type Contrast = "normal" | "high";
 type TextSize = "normal" | "large";
@@ -20,8 +21,12 @@ function applyToDocument(settings: Settings) {
   root.dataset.text = settings.textSize;
 }
 
-export default function A11ySettings() {
-  const [open, setOpen] = useState(false);
+interface A11ySettingsProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function A11ySettings({ open, onOpenChange }: A11ySettingsProps) {
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
 
   useEffect(() => {
@@ -48,22 +53,11 @@ export default function A11ySettings() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-controls="a11y-panel"
-        aria-label="Open accessibility settings"
-        className="fixed left-3 top-28 z-40 min-h-11 rounded-full border border-white/20 bg-black/75 px-3 py-2 text-xs font-bold text-white shadow-lg backdrop-blur transition-colors hover:bg-white/10"
-      >
-        Settings
-      </button>
-
       {open && (
         <>
           <div
             className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
+            onClick={() => onOpenChange(false)}
             aria-hidden="true"
           />
 
@@ -77,7 +71,7 @@ export default function A11ySettings() {
               <h2 className="text-xl font-bold text-white">Accessibility</h2>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
                 aria-label="Close accessibility settings"
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white hover:bg-white/10"
               >
