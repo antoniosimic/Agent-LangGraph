@@ -16,6 +16,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
   const streamRef = useRef<MediaStream | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
@@ -54,6 +55,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d")?.drawImage(video, 0, 0);
+    setCapturedPreview(canvas.toDataURL("image/jpeg", 0.9));
 
     if ("vibrate" in navigator) navigator.vibrate(50);
 
@@ -65,6 +67,12 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
       0.9,
     );
   }, [onCapture, disabled]);
+
+  useEffect(() => {
+    if (!disabled) {
+      setCapturedPreview(null);
+    }
+  }, [disabled]);
 
   useEffect(() => {
     if (!streaming) return;
@@ -121,21 +129,44 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
         >
           <video
             ref={videoRef}
-            className="w-full h-full object-cover pointer-events-none"
+            className={`w-full h-full object-cover pointer-events-none ${
+              capturedPreview ? "invisible" : ""
+            }`}
             playsInline
             muted
             autoPlay
             aria-hidden="true"
           />
 
+          {capturedPreview && (
+            <img
+              src={capturedPreview}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              aria-hidden="true"
+            />
+          )}
+
           {/* Gornji indikator UŽIVO */}
           <span
-            className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur rounded-full text-xs font-bold uppercase tracking-wider text-red-400 pointer-events-none"
+            className={`absolute top-3 left-3 items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur rounded-full text-xs font-bold uppercase tracking-wider text-red-400 pointer-events-none ${
+              capturedPreview ? "hidden" : "flex"
+            }`}
             aria-hidden="true"
           >
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             Uživo
           </span>
+
+          {capturedPreview && (
+            <span
+              className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1 bg-blue-950/80 backdrop-blur rounded-full text-xs font-bold uppercase tracking-wider text-blue-100 pointer-events-none"
+              aria-hidden="true"
+            >
+              <span className="w-2 h-2 rounded-full bg-blue-400" />
+              Snimljeno
+            </span>
+          )}
 
           {/* Crosshair u sredini */}
           <span
