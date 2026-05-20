@@ -3,17 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CameraCaptureProps {
+  disabled?: boolean;
+  holdPreview?: boolean;
   onCameraActive?: () => void;
   onCapture: (blob: Blob) => void;
   onPictureTaken?: () => void;
-  disabled?: boolean;
 }
 
 export default function CameraCapture({
+  disabled,
+  holdPreview,
   onCameraActive,
   onCapture,
   onPictureTaken,
-  disabled,
 }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -69,10 +71,10 @@ export default function CameraCapture({
   }, [streaming]);
 
   useEffect(() => {
-    if (!disabled) {
+    if (!holdPreview) {
       setCapturedPreview(null);
     }
-  }, [disabled]);
+  }, [holdPreview]);
 
   const capture = useCallback(() => {
     if (disabled || !streaming) return;
@@ -111,7 +113,7 @@ export default function CameraCapture({
   }, [capture, disabled, streaming]);
 
   return (
-    <section className="relative h-[100dvh] min-h-[620px] w-full overflow-hidden bg-black text-white">
+    <section className="relative h-[100dvh] min-h-[100dvh] w-full overflow-hidden bg-black text-white">
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
       <button
@@ -120,11 +122,11 @@ export default function CameraCapture({
         disabled={!streaming || disabled}
         aria-label={
           disabled
-            ? "Analysis in progress"
+            ? "Camera is paused while the current description is open"
             : "Tap anywhere on the camera view to take a picture for analysis"
         }
         aria-busy={disabled}
-        className="absolute inset-0 h-full w-full touch-manipulation overflow-hidden bg-black text-left disabled:cursor-wait"
+        className="absolute inset-0 h-full w-full touch-manipulation overflow-hidden bg-black text-left disabled:cursor-default"
       >
         <video
           ref={videoRef}
@@ -144,9 +146,9 @@ export default function CameraCapture({
           />
         )}
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/75" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/80" />
 
-        <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/65 px-3 py-2 text-xs font-bold uppercase tracking-wider backdrop-blur">
+        <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-bold uppercase tracking-wider backdrop-blur">
           <span
             className={`h-2.5 w-2.5 rounded-full ${
               capturedPreview ? "bg-blue-300" : "animate-pulse bg-red-400"
@@ -155,12 +157,12 @@ export default function CameraCapture({
           {capturedPreview ? "Picture taken" : "Camera active"}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-5 pb-8 pt-20">
-          <div className="mx-auto flex max-w-sm items-center justify-center gap-3 rounded-full bg-white px-5 py-4 text-center text-base font-bold text-black shadow-2xl">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6 pt-20">
+          <div className="mx-auto flex max-w-[17rem] items-center justify-center gap-2 rounded-full bg-white px-4 py-4 text-center text-sm font-bold text-black shadow-2xl sm:max-w-sm sm:text-base">
             {disabled ? (
               <>
                 <SpinnerSmall />
-                Analyzing picture
+                Analyzing
               </>
             ) : (
               <>

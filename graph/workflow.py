@@ -1,15 +1,71 @@
-# LangGraph workflow — Antonio Šimić (AI/Backend Architect)
-# Definira redoslijed agenata i uvjetno grananje u slučaju greške.
+# LangGraph workflow - orchestrates Blaind agents.
 
+import json
 import os
+import time
+from typing import Callable
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 
-from graph.state import BlaindState
-from agents.visual_analysis_agent import VisualAnalysisAgent
 from agents.semantic_interpretation_agent import SemanticInterpretationAgent
 from agents.speech_interaction_agent import SpeechInteractionAgent
+from agents.visual_analysis_agent import VisualAnalysisAgent
+from graph.state import BlaindState
 from memory.memory_store import MemoryStore
+
+
+def _workflow_logging_enabled() -> bool:
+    return os.getenv("WORKFLOW_LOGGING", "true").lower() in {"1", "true", "yes", "on"}
+
+
+def _state_for_log(state: BlaindState) -> dict:
+    return {
+        "current_step": state.current_step,
+        "user_id": state.user_id,
+        "session_id": state.session_id,
+        "has_image_base64": bool(state.image_base64),
+        "image_base64_length": len(state.image_base64 or ""),
+        "has_image_path": bool(state.image_path),
+        "memory_context_present": bool(state.memory_context),
+        "detected_objects": state.detected_objects,
+        "foreground_objects": state.foreground_objects,
+        "background_objects": state.background_objects,
+        "scene_layout": state.scene_layout,
+        "spatial_relationships": state.spatial_relationships,
+        "object_details": state.object_details,
+        "detected_text": state.detected_text,
+        "detected_faces": state.detected_faces,
+        "dominant_colors": state.dominant_colors,
+        "semantic_description": state.semantic_description,
+        "context_tags": state.context_tags,
+        "confidence_score": state.confidence_score,
+        "audio_path_present": bool(state.audio_path),
+        "error": state.error,
+    }
+
+
+def _log_agent_boundary(label: str, state: BlaindState, duration_ms: int | None = None) -> None:
+    if not _workflow_logging_enabled():
+        return
+
+    payload = _state_for_log(state)
+    if duration_ms is not None:
+        payload["duration_ms"] = duration_ms
+    print(f"\n[workflow] {label}")
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def _run_logged(
+    label: str,
+    state: BlaindState,
+    fn: Callable[[BlaindState], BlaindState],
+) -> BlaindState:
+    _log_agent_boundary(f"{label}:input", state)
+    started_at = time.perf_counter()
+    updated = fn(state)
+    duration_ms = round((time.perf_counter() - started_at) * 1000)
+    _log_agent_boundary(f"{label}:output", updated, duration_ms)
+    return updated
 
 
 def build_graph() -> StateGraph:
@@ -24,34 +80,38 @@ def build_graph() -> StateGraph:
     speech_agent = SpeechInteractionAgent() if backend_tts_enabled else None
     memory_store = MemoryStore()
 
-    # Svaki čvor prima BlaindState i vraća ažurirani BlaindState
-
     def load_memory(state: BlaindState) -> BlaindState:
-        """Učitava kontekst prethodnih interakcija ovog korisnika."""
-        context = memory_store.get_user_context(state.user_id)
-        return state.model_copy(update={
-            "memory_context": context,
-            "current_step": "memory_loaded",
-        })
+        def _load(state_to_update: BlaindState) -> BlaindState:
+            context = memory_store.get_user_context(state_to_update.user_id)
+            return state_to_update.model_copy(update={
+                "memory_context": context,
+                "current_step": "memory_loaded",
+            })
+
+        return _run_logged("load_memory", state, _load)
 
     def run_visual_analysis(state: BlaindState) -> BlaindState:
-        return visual_agent.run(state)
+        return _run_logged("visual_analysis", state, visual_agent.run)
 
     def run_semantic_interpretation(state: BlaindState) -> BlaindState:
-        return semantic_agent.run(state)
+        return _run_logged("semantic_interpretation", state, semantic_agent.run)
 
     def run_speech(state: BlaindState) -> BlaindState:
-        if speech_agent is None:
-            return state.model_copy(update={"current_step": "speech_skipped"})
-        return speech_agent.run(state)
+        def _speech(state_to_update: BlaindState) -> BlaindState:
+            if speech_agent is None:
+                return state_to_update.model_copy(update={"current_step": "speech_skipped"})
+            return speech_agent.run(state_to_update)
+
+        return _run_logged("speech", state, _speech)
 
     def save_memory(state: BlaindState) -> BlaindState:
-        """Sprema rezultate analize u memoriju za buduće interakcije."""
-        memory_store.save_interaction(state.user_id, state)
-        return state.model_copy(update={"current_step": "done"})
+        def _save(state_to_update: BlaindState) -> BlaindState:
+            memory_store.save_interaction(state_to_update.user_id, state_to_update)
+            return state_to_update.model_copy(update={"current_step": "done"})
+
+        return _run_logged("save_memory", state, _save)
 
     def should_continue(state: BlaindState) -> str:
-        """Ako je agent vratio grešku, prekidamo workflow."""
         return "error" if state.error else "continue"
 
     graph = StateGraph(BlaindState)
@@ -83,5 +143,4 @@ def build_graph() -> StateGraph:
     return graph.compile()
 
 
-# Singleton instanca — uvoziti u API-ju
 blaind_graph = build_graph()

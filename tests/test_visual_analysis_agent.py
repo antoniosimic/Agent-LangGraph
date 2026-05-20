@@ -26,6 +26,9 @@ def test_uspjesna_vizualna_analiza(mock_llm_class):
           "detected_objects": ["person", "door", "bag"],
           "foreground_objects": ["person", "bag"],
           "background_objects": ["door"],
+          "scene_layout": "A person and bag are near the center, with a door behind them.",
+          "spatial_relationships": ["bag is next to the person", "door is behind the person"],
+          "object_details": ["EXIT text is on the door"],
           "detected_text": "EXIT",
           "detected_faces": 1,
           "dominant_colors": ["blue", "gray", "white"]
@@ -41,6 +44,12 @@ def test_uspjesna_vizualna_analiza(mock_llm_class):
     assert result.detected_objects == ["person", "door", "bag"]
     assert result.foreground_objects == ["person", "bag"]
     assert result.background_objects == ["door"]
+    assert result.scene_layout == "A person and bag are near the center, with a door behind them."
+    assert result.spatial_relationships == [
+        "bag is next to the person",
+        "door is behind the person",
+    ]
+    assert result.object_details == ["EXIT text is on the door"]
     assert result.detected_text == "EXIT"
     assert result.detected_faces == 1
     assert result.dominant_colors == ["blue", "gray", "white"]
@@ -56,7 +65,7 @@ def test_greska_kada_nema_slike(mock_llm_class):
 
     assert result.current_step == "visual_analysis_failed"
     assert result.error is not None
-    assert "slika" in result.error.lower()
+    assert "image" in result.error.lower()
     mock_llm.invoke.assert_not_called()
 
 
@@ -70,6 +79,9 @@ def test_rubni_slucaj_markdown_json_i_normalizacija(mock_llm_class):
           "detected_objects": "traffic sign",
           "foreground_objects": [" traffic sign ", null],
           "background_objects": ["road", "building"],
+          "scene_layout": " The sign is near the center with the road behind it. ",
+          "spatial_relationships": "traffic sign is in front of the road",
+          "object_details": [" STOP text is printed on the traffic sign "],
           "detected_text": ["STOP", "A1"],
           "detected_faces": "2 faces",
           "dominant_colors": ["red", "gray", "green", "blue"]
@@ -84,6 +96,9 @@ def test_rubni_slucaj_markdown_json_i_normalizacija(mock_llm_class):
     assert result.detected_objects == ["traffic sign"]
     assert result.foreground_objects == ["traffic sign"]
     assert result.background_objects == ["road", "building"]
+    assert result.scene_layout == "The sign is near the center with the road behind it."
+    assert result.spatial_relationships == ["traffic sign is in front of the road"]
+    assert result.object_details == ["STOP text is printed on the traffic sign"]
     assert result.detected_text == "STOP | A1"
     assert result.detected_faces == 2
     assert result.dominant_colors == ["red", "gray", "green"]

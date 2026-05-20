@@ -15,6 +15,9 @@ class BlaindState(BaseModel):
     detected_objects: list[str] = Field(default_factory=list)    # svi prepoznati objekti
     foreground_objects: list[str] = Field(default_factory=list)  # objekti u prvom planu
     background_objects: list[str] = Field(default_factory=list)  # objekti u pozadini
+    scene_layout: Optional[str] = None                            # neutral spatial layout of the scene
+    spatial_relationships: list[str] = Field(default_factory=list) # relationships between objects
+    object_details: list[str] = Field(default_factory=list)       # object-specific visual details
     detected_text: Optional[str] = None                          # OCR tekst iz slike
     detected_faces: int = 0                                       # broj lica
     dominant_colors: list[str] = Field(default_factory=list)     # dominantne boje

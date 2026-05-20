@@ -1,6 +1,4 @@
-# WebSocket endpoint — Član 4 (Audio Integration & API)
-# Frontend se spaja na /ws/{user_id} i šalje slike kao base64.
-# Server šalje JSON statusne poruke i finalni rezultat u realnom vremenu.
+# WebSocket endpoint for real-time image analysis.
 
 import json
 from pathlib import Path
@@ -30,7 +28,7 @@ async def websocket_analyze(websocket: WebSocket, user_id: str):
             image_base64 = payload.get("image_base64")
 
             if not image_base64:
-                await websocket.send_json({"error": "Nije proslijeđena slika."})
+                await websocket.send_json({"error": "No image was provided."})
                 continue
 
             await websocket.send_json({"status": "processing", "step": "visual_analysis"})

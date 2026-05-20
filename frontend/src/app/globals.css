@@ -29,6 +29,55 @@ html[data-contrast="high"] body {
   background: #000000 !important;
 }
 
+html[data-contrast="high"] .bg-gradient-to-b,
+html[data-contrast="high"] .bg-gradient-to-t {
+  background-image: none !important;
+}
+
+html[data-contrast="high"] button,
+html[data-contrast="high"] [role="dialog"],
+html[data-contrast="high"] article,
+html[data-contrast="high"] section {
+  border-color: #ffffff !important;
+}
+
+html[data-contrast="high"] button {
+  background: #000000 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-contrast="high"] button[aria-pressed="true"],
+html[data-contrast="high"] button[data-selected="true"] {
+  background: #ffd400 !important;
+  border-color: #ffd400 !important;
+  color: #000000 !important;
+}
+
+html[data-contrast="high"] button:hover,
+html[data-contrast="high"] button:focus-visible {
+  background: #1a1a1a !important;
+}
+
+html[data-contrast="high"] button[aria-pressed="true"]:hover,
+html[data-contrast="high"] button[data-selected="true"]:hover {
+  background: #ffea70 !important;
+  color: #000000 !important;
+}
+
+html[data-contrast="high"] p,
+html[data-contrast="high"] h1,
+html[data-contrast="high"] h2,
+html[data-contrast="high"] legend,
+html[data-contrast="high"] span {
+  color: #ffffff !important;
+}
+
+html[data-contrast="high"] button[aria-pressed="true"] span,
+html[data-contrast="high"] button[data-selected="true"] span {
+  color: #000000 !important;
+}
+
 html[data-contrast="high"] .glow {
   animation: none !important;
   box-shadow: none !important;
@@ -46,7 +95,14 @@ body {
   background-attachment: fixed;
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
   min-height: 100vh;
+  width: 100%;
+}
+
+html {
+  min-height: 100%;
+  width: 100%;
 }
 
 /* Vidljiv focus prsten — ključno za korisnike koji navigiraju tipkovnicom. */

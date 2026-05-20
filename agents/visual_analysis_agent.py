@@ -1,5 +1,5 @@
-# Visual Analysis Agent - Clan 3 (Computer Vision)
-# Analizira sliku i vraca strukturirane vizualne cinjenice za semantic agent.
+# Visual Analysis Agent - Computer Vision
+# Analyzes an image and returns structured visual facts for the semantic agent.
 
 import base64
 import json
@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 from graph.state import BlaindState
 
 
-# Visual agent smije samo opazati, ne tumaciti scenu za korisnika.
+# The visual agent observes only; it does not create the final user-facing description.
 VISION_PROMPT = """
 You are the Visual Analysis Agent in an accessibility system for blind users.
 Your job is to observe the image and return structured visual facts for another
@@ -23,7 +23,10 @@ Return ONLY one valid JSON object with exactly these fields:
   "detected_objects": ["object names visible in the image"],
   "foreground_objects": ["objects closest to the camera or most visually prominent"],
   "background_objects": ["objects clearly farther away or behind the main subject"],
-  "detected_text": "all readable text copied exactly, or null if no text is readable",
+  "scene_layout": "one short neutral sentence describing the spatial layout",
+  "spatial_relationships": ["relationships between objects and positions"],
+  "object_details": ["object-specific details that preserve important visual context"],
+  "detected_text": "clearly readable text copied exactly, or null if no text is confidently readable",
   "detected_faces": 0,
   "dominant_colors": ["top 3 dominant color names"]
 }
@@ -33,10 +36,18 @@ Rules:
 - Include safety-relevant objects such as stairs, doors, vehicles, crossings, obstacles, signs, and people.
 - Put immediate obstacles and nearby objects in foreground_objects.
 - Put distant scene elements in background_objects.
-- For OCR, copy visible text exactly. If multiple texts appear, join them with " | ".
+- Use scene_layout to preserve left/right/center, near/far, in front/behind, and overall arrangement.
+- Use spatial_relationships for facts such as "person on the right is standing next to person on the left", "chair is in front of the door", or "car is behind the sign".
+- Use object_details for facts attached to specific objects, such as "white text is printed on the black shirt" or "red label is on the bottle".
+- For OCR, copy visible text exactly only when you are highly confident.
+- Do not infer likely text from context, logos, clothing, signs, or partial letters.
+- If text is blurry, cropped, stylized, partly hidden, or uncertain, set detected_text to null.
+- If multiple clearly readable texts appear, join them with " | ".
+- Do not put guessed text in object_details. Only mention text in object_details when it is clearly readable and attached to a specific object.
 - detected_faces must be an integer count of visible human faces.
 - dominant_colors must contain at most 3 plain English color names.
 - If you are uncertain about an object, omit it instead of guessing.
+- Do not create a final description for the user. Return only visual facts.
 - Respond with JSON only. Do not use markdown, code fences, comments, or extra text.
 """
 
@@ -124,7 +135,19 @@ class VisualAnalysisAgent:
         else:
             text = str(value).strip()
 
-        if not text or text.lower() in {"none", "null", "no text", "n/a"}:
+        uncertain_values = {
+            "none",
+            "null",
+            "no text",
+            "n/a",
+            "unknown",
+            "unclear",
+            "unreadable",
+            "illegible",
+            "not readable",
+            "text unclear",
+        }
+        if not text or text.lower() in uncertain_values:
             return None
         return text
 
@@ -145,11 +168,23 @@ class VisualAnalysisAgent:
 
         return 0
 
+    def _normalize_optional_string(self, value: Any) -> str | None:
+        if value is None:
+            return None
+
+        text = str(value).strip()
+        if not text or text.lower() in {"none", "null", "n/a", "no layout"}:
+            return None
+        return text
+
     def _normalize_analysis(self, raw: dict[str, Any]) -> dict[str, Any]:
         return {
             "detected_objects": self._normalize_string_list(raw.get("detected_objects")),
             "foreground_objects": self._normalize_string_list(raw.get("foreground_objects")),
             "background_objects": self._normalize_string_list(raw.get("background_objects")),
+            "scene_layout": self._normalize_optional_string(raw.get("scene_layout")),
+            "spatial_relationships": self._normalize_string_list(raw.get("spatial_relationships")),
+            "object_details": self._normalize_string_list(raw.get("object_details")),
             "detected_text": self._normalize_detected_text(raw.get("detected_text")),
             "detected_faces": self._normalize_detected_faces(raw.get("detected_faces")),
             "dominant_colors": self._normalize_string_list(raw.get("dominant_colors"), max_items=3),
@@ -164,7 +199,7 @@ class VisualAnalysisAgent:
                 image_data = self._encode_image(state.image_path)
             else:
                 return state.model_copy(update={
-                    "error": "Nije proslijedena slika za analizu.",
+                    "error": "No image was provided for visual analysis.",
                     "current_step": "visual_analysis_failed",
                 })
 
@@ -187,6 +222,6 @@ class VisualAnalysisAgent:
 
         except Exception as e:
             return state.model_copy(update={
-                "error": f"VisualAnalysisAgent greska: {str(e)}",
+                "error": f"VisualAnalysisAgent error: {str(e)}",
                 "current_step": "visual_analysis_failed",
             })
