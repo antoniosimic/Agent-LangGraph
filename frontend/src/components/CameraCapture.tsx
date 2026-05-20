@@ -29,6 +29,8 @@ export default function CameraCapture({
   const [torch, setTorch] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
+  const facingModeRef = useRef<"environment" | "user">("environment");
 
   useEffect(() => {
     onCameraActiveRef.current = onCameraActive;
@@ -39,19 +41,21 @@ export default function CameraCapture({
     streamRef.current = null;
   }, []);
 
-  const startCamera = useCallback(async () => {
-    setPermissionState("requesting");
+  const startCamera = useCallback(async (isSwitch = false) => {
+    if (!isSwitch) setPermissionState("requesting");
     try {
       stopCamera();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 1920 },
-        },
+        video: facingModeRef.current === "environment"
+          ? { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1920 } }
+          : { facingMode: { ideal: "user" } },
       });
       streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
       setStreaming(true);
       setPermissionState("ready");
       setTorch(false);
@@ -63,7 +67,7 @@ export default function CameraCapture({
       onCameraActiveRef.current?.();
     } catch {
       setStreaming(false);
-      setPermissionState("denied");
+      if (!isSwitch) setPermissionState("denied");
     }
   }, [stopCamera]);
 
@@ -104,6 +108,15 @@ export default function CameraCapture({
       }
     }
   }, [torch]);
+
+  const switchCamera = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = facingModeRef.current === "environment" ? "user" : "environment";
+    facingModeRef.current = next;
+    setFacingMode(next);
+    setTorch(false);
+    startCamera(true);
+  }, [startCamera]);
 
   const capture = useCallback(() => {
     if (disabled || !streaming) return;
@@ -210,13 +223,22 @@ export default function CameraCapture({
         </div>
       </button>
 
-      {(torchSupported || true) && (
+      <button
+        type="button"
+        onClick={switchCamera}
+        aria-label={facingMode === "environment" ? "Switch to front camera" : "Switch to back camera"}
+        className="absolute bottom-6 right-4 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 bg-black/75 shadow-lg backdrop-blur transition-colors hover:bg-white/10"
+      >
+        <SwitchCameraIcon />
+      </button>
+
+      {facingMode === "environment" && (torchSupported || true) && (
         <button
           type="button"
           onClick={toggleTorch}
           aria-label={torch ? "Turn flash off" : "Turn flash on"}
           aria-pressed={torch}
-          className="absolute bottom-6 right-4 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 bg-black/75 shadow-lg backdrop-blur transition-colors hover:bg-white/10"
+          className="absolute bottom-6 right-20 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 bg-black/75 shadow-lg backdrop-blur transition-colors hover:bg-white/10"
         >
           <FlashIcon on={torch} />
         </button>
@@ -283,6 +305,17 @@ function ShutterIcon() {
     >
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="4" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SwitchCameraIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 7h-3a2 2 0 0 1-2-2V2" />
+      <path d="M9 2H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5" />
+      <path d="M14 2v5h6" />
+      <circle cx="10" cy="13" r="3" />
     </svg>
   );
 }
