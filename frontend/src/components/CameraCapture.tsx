@@ -47,9 +47,7 @@ export default function CameraCapture({
       stopCamera();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: facingModeRef.current === "environment"
-          ? { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1920 } }
-          : { facingMode: { ideal: "user" } },
+        video: { facingMode: { ideal: facingModeRef.current } },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -115,6 +113,8 @@ export default function CameraCapture({
     facingModeRef.current = next;
     setFacingMode(next);
     setTorch(false);
+    setCapturedPreview(null);
+    setStreaming(false);
     startCamera(true);
   }, [startCamera]);
 
