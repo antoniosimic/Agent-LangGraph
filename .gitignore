@@ -47,5 +47,8 @@ uploads/
 *.wav
 *.mp3
 
+# Runtime data (ChromaDB, memory fallback)
+data/
+
 # Local project notes
 LOCAL_PROJECT_NOTES.md

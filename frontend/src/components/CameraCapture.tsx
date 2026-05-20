@@ -73,10 +73,9 @@ export default function CameraCapture({
       setCameraReady(true);
       setTimeout(() => setCameraReady(false), 500);
       onCameraActiveRef.current?.();
-    } catch (err) {
+    } catch {
       setStreaming(false);
       if (!isSwitch) setPermissionState("denied");
-      else alert("Camera switch failed: " + String(err));
     }
   }, [stopCamera]);
 
@@ -187,7 +186,7 @@ export default function CameraCapture({
 
       {/* Bottom control bar */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-center gap-3 px-4 pb-8">
-        {/* Flash button — mobile only */}
+        {/* Flash button — always visible on mobile, hidden on desktop */}
         <button
           type="button"
           onClick={toggleTorch}
