@@ -1,37 +1,66 @@
 "use client";
 
-// CameraCapture — kada je kamera aktivna, CIJELI prikaz postaje gumb za snimanje.
-// Ovo je ključno za slijepe korisnike: ne moraju ciljati malu metu.
-
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CameraCaptureProps {
+  onCameraActive?: () => void;
   onCapture: (blob: Blob) => void;
+  onPictureTaken?: () => void;
   disabled?: boolean;
 }
 
-export default function CameraCapture({ onCapture, disabled }: CameraCaptureProps) {
+export default function CameraCapture({
+  onCameraActive,
+  onCapture,
+  onPictureTaken,
+  disabled,
+}: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const onCameraActiveRef = useRef(onCameraActive);
   const [streaming, setStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [permissionState, setPermissionState] = useState<"requesting" | "denied" | "ready">(
+    "requesting",
+  );
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
 
+  useEffect(() => {
+    onCameraActiveRef.current = onCameraActive;
+  }, [onCameraActive]);
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  }, []);
+
   const startCamera = useCallback(async () => {
+    setPermissionState("requesting");
     try {
+      stopCamera();
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 1920 },
+        },
       });
       streamRef.current = stream;
       setStreaming(true);
-      setError(null);
+      setPermissionState("ready");
+      onCameraActiveRef.current?.();
     } catch {
-      setError("Nije moguće pristupiti kameri. Provjerite dozvole.");
+      setStreaming(false);
+      setPermissionState("denied");
     }
-  }, []);
+  }, [stopCamera]);
 
-  // Stream se priključuje na <video> tek nakon što ga React montira.
+  useEffect(() => {
+    startCamera();
+    return stopCamera;
+  }, [startCamera, stopCamera]);
+
   useEffect(() => {
     if (streaming && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
@@ -39,23 +68,24 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
     }
   }, [streaming]);
 
-  // Pri unmount-u zaustavljamo tracks da se kamera oslobodi.
   useEffect(() => {
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
-  }, []);
+    if (!disabled) {
+      setCapturedPreview(null);
+    }
+  }, [disabled]);
 
   const capture = useCallback(() => {
-    if (disabled) return;
+    if (disabled || !streaming) return;
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) return;
+    if (!video || !canvas || !video.videoWidth || !video.videoHeight) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d")?.drawImage(video, 0, 0);
     setCapturedPreview(canvas.toDataURL("image/jpeg", 0.9));
+    onPictureTaken?.();
 
     if ("vibrate" in navigator) navigator.vibrate(50);
 
@@ -66,13 +96,7 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
       "image/jpeg",
       0.9,
     );
-  }, [onCapture, disabled]);
-
-  useEffect(() => {
-    if (!disabled) {
-      setCapturedPreview(null);
-    }
-  }, [disabled]);
+  }, [disabled, onCapture, onPictureTaken, streaming]);
 
   useEffect(() => {
     if (!streaming) return;
@@ -84,126 +108,112 @@ export default function CameraCapture({ onCapture, disabled }: CameraCaptureProp
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [streaming, capture, disabled]);
+  }, [capture, disabled, streaming]);
 
   return (
-    <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
-      {error && (
-        <p
-          role="alert"
-          className="text-red-300 text-base font-medium bg-red-950/40 border border-red-500/50 rounded-xl px-4 py-3 w-full text-center"
-        >
-          {error}
-        </p>
-      )}
-
+    <section className="relative h-[100dvh] min-h-[620px] w-full overflow-hidden bg-black text-white">
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
-      {!streaming ? (
-        <button
-          type="button"
-          onClick={startCamera}
-          className="glow group relative w-full px-8 py-8 sm:py-10 bg-gradient-to-br from-blue-500 to-blue-700 hover:from-blue-400 hover:to-blue-600 rounded-3xl text-2xl sm:text-3xl font-bold transition-all shadow-2xl shadow-blue-500/30"
-          aria-label="Aktiviraj kameru za analizu okoline"
-        >
-          <span className="flex items-center justify-center gap-4">
-            <CameraIcon />
-            Aktiviraj kameru
-          </span>
-          <span className="block mt-2 text-sm font-normal text-blue-100/80">
-            Trebamo pristup kameri da bismo opisali okolinu
-          </span>
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={capture}
-          disabled={disabled}
-          aria-label={
-            disabled
-              ? "Analiza u tijeku, pričekajte"
-              : "Snimi sliku — pritisak razmaknice ili dodir bilo gdje na prikazu kamere"
-          }
-          aria-busy={disabled}
-          className="relative w-full aspect-video bg-gray-950 rounded-3xl overflow-hidden border-4 border-blue-500/80 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:border-yellow-400 shadow-2xl shadow-blue-500/20 transition-transform active:scale-[0.99]"
-        >
-          <video
-            ref={videoRef}
-            className={`w-full h-full object-cover pointer-events-none ${
-              capturedPreview ? "invisible" : ""
-            }`}
-            playsInline
-            muted
-            autoPlay
+      <button
+        type="button"
+        onClick={capture}
+        disabled={!streaming || disabled}
+        aria-label={
+          disabled
+            ? "Analysis in progress"
+            : "Tap anywhere on the camera view to take a picture for analysis"
+        }
+        aria-busy={disabled}
+        className="absolute inset-0 h-full w-full touch-manipulation overflow-hidden bg-black text-left disabled:cursor-wait"
+      >
+        <video
+          ref={videoRef}
+          className={`h-full w-full object-cover ${capturedPreview ? "invisible" : ""}`}
+          playsInline
+          muted
+          autoPlay
+          aria-hidden="true"
+        />
+
+        {capturedPreview && (
+          <img
+            src={capturedPreview}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
             aria-hidden="true"
           />
+        )}
 
-          {capturedPreview && (
-            <img
-              src={capturedPreview}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-              aria-hidden="true"
-            />
-          )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/75" />
 
-          {/* Gornji indikator UŽIVO */}
+        <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/65 px-3 py-2 text-xs font-bold uppercase tracking-wider backdrop-blur">
           <span
-            className={`absolute top-3 left-3 items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur rounded-full text-xs font-bold uppercase tracking-wider text-red-400 pointer-events-none ${
-              capturedPreview ? "hidden" : "flex"
+            className={`h-2.5 w-2.5 rounded-full ${
+              capturedPreview ? "bg-blue-300" : "animate-pulse bg-red-400"
             }`}
-            aria-hidden="true"
-          >
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            Uživo
-          </span>
+          />
+          {capturedPreview ? "Picture taken" : "Camera active"}
+        </div>
 
-          {capturedPreview && (
-            <span
-              className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1 bg-blue-950/80 backdrop-blur rounded-full text-xs font-bold uppercase tracking-wider text-blue-100 pointer-events-none"
-              aria-hidden="true"
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-5 pb-8 pt-20">
+          <div className="mx-auto flex max-w-sm items-center justify-center gap-3 rounded-full bg-white px-5 py-4 text-center text-base font-bold text-black shadow-2xl">
+            {disabled ? (
+              <>
+                <SpinnerSmall />
+                Analyzing picture
+              </>
+            ) : (
+              <>
+                <ShutterIcon />
+                Tap anywhere to analyze
+              </>
+            )}
+          </div>
+        </div>
+      </button>
+
+      {permissionState !== "ready" && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/90 px-5 backdrop-blur">
+          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-zinc-950 p-6 shadow-2xl">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white">
+              <CameraIcon />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Blaind needs camera access</h1>
+            <p className="mt-3 text-base leading-relaxed text-zinc-300">
+              Allow camera permission so Blaind can capture a picture and describe what is in
+              front of you.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+              Descriptions are AI-generated and may not be fully accurate. Use your own judgment,
+              especially in safety-critical situations.
+            </p>
+            <button
+              type="button"
+              onClick={startCamera}
+              className="mt-6 w-full rounded-xl bg-blue-500 px-5 py-4 text-base font-bold text-white transition-colors hover:bg-blue-400 focus-visible:outline-yellow-300"
             >
-              <span className="w-2 h-2 rounded-full bg-blue-400" />
-              Snimljeno
-            </span>
-          )}
-
-          {/* Crosshair u sredini */}
-          <span
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            aria-hidden="true"
-          >
-            <span className="w-20 h-20 border-2 border-white/50 rounded-2xl" />
-          </span>
-
-          {/* CTA traka na dnu */}
-          <span
-            className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent text-white pt-12 pb-5 px-5 pointer-events-none"
-            aria-hidden="true"
-          >
-            <span className="flex items-center justify-center gap-3 text-xl font-bold">
-              {disabled ? (
-                <>
-                  <SpinnerSmall />
-                  Analiza u tijeku...
-                </>
-              ) : (
-                <>
-                  <ShutterIcon />
-                  Dodirni za analizu
-                </>
-              )}
-            </span>
-          </span>
-        </button>
+              {permissionState === "requesting" ? "Requesting camera..." : "Enable camera"}
+            </button>
+          </div>
+        </div>
       )}
-    </div>
+    </section>
   );
 }
 
 function CameraIcon() {
   return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
       <circle cx="12" cy="13" r="4" />
     </svg>
@@ -212,7 +222,15 @@ function CameraIcon() {
 
 function ShutterIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="4" fill="currentColor" />
     </svg>
@@ -222,7 +240,7 @@ function ShutterIcon() {
 function SpinnerSmall() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" className="animate-spin" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.3" strokeWidth="3" fill="none" />
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" fill="none" />
       <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" />
     </svg>
   );

@@ -1,6 +1,8 @@
 # LangGraph workflow — Antonio Šimić (AI/Backend Architect)
 # Definira redoslijed agenata i uvjetno grananje u slučaju greške.
 
+import os
+
 from langgraph.graph import StateGraph, END
 
 from graph.state import BlaindState
@@ -13,7 +15,13 @@ from memory.memory_store import MemoryStore
 def build_graph() -> StateGraph:
     visual_agent = VisualAnalysisAgent()
     semantic_agent = SemanticInterpretationAgent()
-    speech_agent = SpeechInteractionAgent()
+    backend_tts_enabled = os.getenv("ENABLE_BACKEND_TTS", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    speech_agent = SpeechInteractionAgent() if backend_tts_enabled else None
     memory_store = MemoryStore()
 
     # Svaki čvor prima BlaindState i vraća ažurirani BlaindState
@@ -33,6 +41,8 @@ def build_graph() -> StateGraph:
         return semantic_agent.run(state)
 
     def run_speech(state: BlaindState) -> BlaindState:
+        if speech_agent is None:
+            return state.model_copy(update={"current_step": "speech_skipped"})
         return speech_agent.run(state)
 
     def save_memory(state: BlaindState) -> BlaindState:
@@ -49,7 +59,8 @@ def build_graph() -> StateGraph:
     graph.add_node("load_memory", load_memory)
     graph.add_node("visual_analysis", run_visual_analysis)
     graph.add_node("semantic_interpretation", run_semantic_interpretation)
-    graph.add_node("speech", run_speech)
+    if backend_tts_enabled:
+        graph.add_node("speech", run_speech)
     graph.add_node("save_memory", save_memory)
 
     graph.set_entry_point("load_memory")
@@ -63,9 +74,10 @@ def build_graph() -> StateGraph:
     graph.add_conditional_edges(
         "semantic_interpretation",
         should_continue,
-        {"continue": "speech", "error": END},
+        {"continue": "speech" if backend_tts_enabled else "save_memory", "error": END},
     )
-    graph.add_edge("speech", "save_memory")
+    if backend_tts_enabled:
+        graph.add_edge("speech", "save_memory")
     graph.add_edge("save_memory", END)
 
     return graph.compile()
