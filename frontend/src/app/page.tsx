@@ -3,6 +3,7 @@
 import { type MouseEvent, useCallback, useRef, useState } from "react";
 import CameraCapture from "@/components/CameraCapture";
 import A11ySettings from "@/components/A11ySettings";
+import AudioPlayer from "@/components/AudioPlayer";
 
 interface AnalysisResult {
   description: string;
@@ -106,7 +107,7 @@ export default function Home() {
       const description = data.description || "No description was generated.";
       setLastDescription(description);
       setStatus("Result ready");
-      speak(description);
+      if (!data.audio_url) speak(description);
       if ("vibrate" in navigator) navigator.vibrate([60, 80, 60]);
     } catch {
       if (analyzingSpeechTimerRef.current !== null) {
@@ -206,6 +207,11 @@ export default function Home() {
               Description
             </p>
             <p className="mt-3 text-xl leading-relaxed text-white">{result?.description}</p>
+            {result?.audio_url && (
+              <div className="mt-4">
+                <AudioPlayer src={`${process.env.NEXT_PUBLIC_API_URL}${result.audio_url}`} />
+              </div>
+            )}
             <button
               type="button"
               onClick={repeatDescription}

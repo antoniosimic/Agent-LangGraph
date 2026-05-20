@@ -26,6 +26,9 @@ export default function CameraCapture({
     "requesting",
   );
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
+  const [torch, setTorch] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   useEffect(() => {
     onCameraActiveRef.current = onCameraActive;
@@ -51,6 +54,12 @@ export default function CameraCapture({
       streamRef.current = stream;
       setStreaming(true);
       setPermissionState("ready");
+      setTorch(false);
+      const track = stream.getVideoTracks()[0];
+      const capabilities = (track.getCapabilities as (() => Record<string, unknown>) | undefined)?.();
+      setTorchSupported(!!capabilities?.torch);
+      setCameraReady(true);
+      setTimeout(() => setCameraReady(false), 600);
       onCameraActiveRef.current?.();
     } catch {
       setStreaming(false);
@@ -75,6 +84,26 @@ export default function CameraCapture({
       setCapturedPreview(null);
     }
   }, [holdPreview]);
+
+  const toggleTorch = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torch;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await track.applyConstraints({ advanced: [{ torch: next } as any] });
+      setTorch(next);
+    } catch {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (track as any).applyConstraints({ torch: next });
+        setTorch(next);
+      } catch {
+        setTorchSupported(false);
+      }
+    }
+  }, [torch]);
 
   const capture = useCallback(() => {
     if (disabled || !streaming) return;
@@ -115,6 +144,13 @@ export default function CameraCapture({
   return (
     <section className="relative h-[100dvh] min-h-[100dvh] w-full overflow-hidden bg-black text-white">
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
+
+      {cameraReady && (
+        <div
+          className="pointer-events-none absolute inset-0 z-20 animate-ping bg-white/30"
+          aria-hidden="true"
+        />
+      )}
 
       <button
         type="button"
@@ -173,6 +209,18 @@ export default function CameraCapture({
           </div>
         </div>
       </button>
+
+      {(torchSupported || true) && (
+        <button
+          type="button"
+          onClick={toggleTorch}
+          aria-label={torch ? "Turn flash off" : "Turn flash on"}
+          aria-pressed={torch}
+          className="absolute bottom-6 right-4 z-10 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/20 bg-black/75 shadow-lg backdrop-blur transition-colors hover:bg-white/10"
+        >
+          <FlashIcon on={torch} />
+        </button>
+      )}
 
       {permissionState !== "ready" && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/90 px-5 backdrop-blur">
@@ -235,6 +283,19 @@ function ShutterIcon() {
     >
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="4" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FlashIcon({ on }: { on: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon
+        points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+        fill={on ? "currentColor" : "none"}
+        className={on ? "text-yellow-300" : "text-white"}
+        stroke={on ? "#fde047" : "currentColor"}
+      />
     </svg>
   );
 }
