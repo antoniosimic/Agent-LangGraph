@@ -17,6 +17,40 @@ const INSTRUCTIONS =
   "Blaind is a mobile camera assistant for blind and low-vision users. Tap anywhere on the camera view to take a picture. After the description appears, tap outside the card to return to the camera. Descriptions are AI-generated and may not be fully accurate.";
 const SPEECH_RATE = 1.25;
 const ANALYZING_SPEECH_DELAY_MS = 1500;
+const BAD_VOICE_PATTERN = /russian|\u0440\u0443\u0441|ru[-_]/i;
+const PREFERRED_VOICE_PATTERNS = [
+  /google us english/i,
+  /english.*united states/i,
+  /microsoft.*zira/i,
+  /samantha/i,
+  /alex/i,
+];
+
+function getPreferredEnglishVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  const englishVoices = voices.filter((voice) => {
+    const voiceText = `${voice.name} ${voice.lang}`;
+    return voice.lang.toLowerCase().startsWith("en") && !BAD_VOICE_PATTERN.test(voiceText);
+  });
+
+  for (const pattern of PREFERRED_VOICE_PATTERNS) {
+    const preferredVoice = englishVoices.find((voice) => pattern.test(voice.name));
+    if (preferredVoice) return preferredVoice;
+  }
+
+  return englishVoices.find((voice) => voice.lang.toLowerCase() === "en-us") ?? englishVoices[0] ?? null;
+}
+
+function createEnglishUtterance(text: string) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
+  utterance.rate = SPEECH_RATE;
+
+  const voice = getPreferredEnglishVoice();
+  if (voice) utterance.voice = voice;
+
+  return utterance;
+}
 
 export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -32,10 +66,7 @@ export default function Home() {
     (text: string, interrupt = true) => {
       if (!soundEnabled || !("speechSynthesis" in window)) return;
       if (interrupt) window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = "en-US";
-      utt.rate = SPEECH_RATE;
-      window.speechSynthesis.speak(utt);
+      window.speechSynthesis.speak(createEnglishUtterance(text));
     },
     [soundEnabled],
   );
@@ -45,10 +76,7 @@ export default function Home() {
       if (!soundEnabled || !("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       for (const part of parts) {
-        const utt = new SpeechSynthesisUtterance(part);
-        utt.lang = "en-US";
-        utt.rate = SPEECH_RATE;
-        window.speechSynthesis.speak(utt);
+        window.speechSynthesis.speak(createEnglishUtterance(part));
       }
     },
     [soundEnabled],
