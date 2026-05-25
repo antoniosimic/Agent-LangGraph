@@ -14,9 +14,9 @@ Kamera → Visual Analysis Agent → Semantic Interpretation Agent → Speech & 
 
 | Agent | Odgovornost | Vlasnik |
 |-------|-------------|---------|
-| `VisualAnalysisAgent` | Analiza slike: oblici, boje, lica, OCR | Član 3 |
+| `VisualAnalysisAgent` | Analiza slike: oblici, boje, lica, OCR | Marin Grković |
 | `SemanticInterpretationAgent` | Daje kontekst i značenje sirovoj analizi | Antonio Šimić |
-| `SpeechInteractionAgent` | Text-to-Speech, audio povratna informacija | Član 4 |
+| `SpeechInteractionAgent` | Text-to-Speech, audio povratna informacija | Barbara Bobeta |
 
 ## Struktura projekta
 
